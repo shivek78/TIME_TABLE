@@ -1,10 +1,10 @@
 // Quick test to see if generation is working
 const mongoose = require('mongoose');
-const Teacher = require('./models/Teacher');
-const Classroom = require('./models/Classroom');
-const Course = require('./models/Course');
-const Timetable = require('./models/Timetable');
-const OptimizationEngine = require('./algorithms/OptimizationEngine');
+const Teacher = require('../server/models/Teacher');
+const Classroom = require('../server/models/Classroom');
+const Course = require('../server/models/Course');
+const Timetable = require('../server/models/Timetable');
+const OptimizationEngine = require('../server/algorithms/OptimizationEngine');
 require('dotenv').config();
 
 async function testQuickGeneration() {
@@ -12,7 +12,7 @@ async function testQuickGeneration() {
     console.log('='.repeat(60));
     console.log('QUICK GENERATION TEST');
     console.log('='.repeat(60));
-    
+
     // Connect
     console.log('\n1. Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGODB_URI);
@@ -23,7 +23,7 @@ async function testQuickGeneration() {
     const teachers = await Teacher.find({ status: 'active' });
     const classrooms = await Classroom.find({ status: 'available' });
     const courses = await Course.find({ isActive: true });
-    
+
     console.log(`✓ Teachers: ${teachers.length}`);
     console.log(`✓ Classrooms: ${classrooms.length}`);
     console.log(`✓ Courses: ${courses.length}\n`);
@@ -47,14 +47,14 @@ async function testQuickGeneration() {
       },
       createdBy: new mongoose.Types.ObjectId()
     });
-    
+
     await timetable.save();
     console.log(`✓ Created timetable: ${timetable._id}\n`);
 
     // Run generation
     console.log('4. Running optimization engine...');
     const engine = new OptimizationEngine();
-    
+
     const settings = {
       algorithm: 'greedy',
       maxIterations: 1000,
@@ -63,7 +63,7 @@ async function testQuickGeneration() {
 
     const startTime = Date.now();
     let lastProgress = 0;
-    
+
     const result = await engine.optimize(
       teachers,
       classrooms,

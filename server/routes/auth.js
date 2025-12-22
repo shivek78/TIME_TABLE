@@ -9,36 +9,32 @@ const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
-
+/**---------------------------------register------------------------------
+/**
+/** ---------------------------------
+ * REGISTER (DISABLED)
+ * ----------------------------------
 /**
  * @route   POST /api/auth/register
- * @desc    Register a new user
- * @access  Public
+ * @desc    Admin signup using secret admin code
+ * @access  Public (protected by secret code)
  */
 router.post('/register', [
   body('name')
     .trim()
-    .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be between 2 and 100 characters'),
+    .isLength({ min: 2 })
+    .withMessage('Name is required'),
   body('email')
     .isEmail()
-    .normalizeEmail()
-    .withMessage('Please provide a valid email'),
+    .withMessage('Valid email required'),
   body('password')
     .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long'),
-  body('role')
-    .optional()
-    .isIn(['admin', 'faculty', 'student'])
-    .withMessage('Role must be admin, faculty, or student'),
-  body('department')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Department name cannot exceed 100 characters')
+    .withMessage('Password must be at least 6 characters'),
+  body('adminCode')
+    .notEmpty()
+    .withMessage('Admin signup code is required')
 ], async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -47,17 +43,26 @@ router.post('/register', [
       });
     }
 
-    const { name, email, password, role, department } = req.body;
+    const { name, email, password, adminCode } = req.body;
 
-    // Only allow admin registration - restrict other roles
-    if (role && role !== 'admin') {
+    // 🔐 Verify admin secret code
+    if (adminCode !== process.env.ADMIN_SIGNUP_CODE) {
       return res.status(403).json({
         success: false,
-        message: 'Only admin accounts can be created through registration. Teachers and students receive credentials from admin.'
+        message: 'Invalid admin signup code'
       });
     }
 
-    // Check if user already exists
+    // ❌ Prevent multiple admins (optional but recommended)
+    const existingAdmin = await User.findOne({ role: 'admin' });
+    if (existingAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin already exists'
+      });
+    }
+
+    // ❌ Prevent duplicate email
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -66,53 +71,51 @@ router.post('/register', [
       });
     }
 
-    // Create new user
-    const user = new User({
+    // ✅ Create admin
+    const admin = new User({
       name,
       email,
       password,
-      role: role || 'admin',
-      department
+      role: 'admin',
+      isFirstLogin: true,
+      mustChangePassword: true
     });
 
-    await user.save();
+    await admin.save();
 
-    // Generate JWT token
+    // 🔑 Generate token
     const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
+      { userId: admin._id, role: admin.role },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
 
-    logger.info('User registered successfully', { 
-      userId: user._id, 
-      email: user.email, 
-      role: user.role 
-    });
-
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'Admin account created successfully',
       token,
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        department: user.department
+        id: admin._id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        mustChangePassword: admin.mustChangePassword,
+        isFirstLogin: admin.isFirstLogin
       }
     });
 
   } catch (error) {
-    logger.error('Registration error:', error);
-    res.status(500).json({
+    logger.error('Admin registration error:', error);
+    return res.status(500).json({
       success: false,
-      message: 'Internal server error during registration'
+      message: 'Server error during admin registration'
     });
   }
 });
 
-/**
+
+/**---------------------------------login--------------------------------------
+
  * @route   POST /api/auth/login
  * @desc    Login user
  * @access  Public
@@ -127,7 +130,6 @@ router.post('/login', [
     .withMessage('Password is required')
 ], async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -138,7 +140,7 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    // Find user by email
+    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
@@ -147,15 +149,15 @@ router.post('/login', [
       });
     }
 
-    // Check if user is active
+    // Check active status
     if (!user.isActive) {
-      return res.status(401).json({
+      return res.status(403).json({
         success: false,
         message: 'Account is deactivated. Please contact administrator.'
       });
     }
 
-    // Check password
+    // Verify password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
@@ -164,27 +166,27 @@ router.post('/login', [
       });
     }
 
-    // Update last login and first login status
+    // Update last login ONLY
     user.lastLogin = new Date();
-    if (user.isFirstLogin) {
-      user.isFirstLogin = false;
-    }
     await user.save();
 
-    // Generate JWT token
+    // Generate JWT
     const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role
+      },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
 
-    logger.info('User logged in successfully', { 
-      userId: user._id, 
-      email: user.email,
-      lastLogin: user.lastLogin
+    logger.info('User logged in successfully', {
+      userId: user._id,
+      email: user.email
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Login successful',
       token,
@@ -202,31 +204,9 @@ router.post('/login', [
 
   } catch (error) {
     logger.error('Login error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Internal server error during login'
-    });
-  }
-});
-
-/**
- * @route   POST /api/auth/logout
- * @desc    Logout user (client-side token removal)
- * @access  Private
- */
-router.post('/logout', authenticateToken, async (req, res) => {
-  try {
-    logger.info('User logged out', { userId: req.user.userId });
-    
-    res.json({
-      success: true,
-      message: 'Logout successful'
-    });
-  } catch (error) {
-    logger.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error during logout'
     });
   }
 });
@@ -239,7 +219,7 @@ router.post('/logout', authenticateToken, async (req, res) => {
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -414,9 +394,9 @@ router.put('/change-password', authenticateToken, [
       role: user.role
     });
 
-    logger.info('User password changed', { 
-      userId: user._id, 
-      emailSent: emailSent 
+    logger.info('User password changed', {
+      userId: user._id,
+      emailSent: emailSent
     });
 
     res.json({
@@ -492,9 +472,9 @@ router.put('/first-time-password-change', authenticateToken, [
       role: user.role
     });
 
-    logger.info('First-time password changed', { 
+    logger.info('First-time password changed', {
       userId: user._id,
-      emailSent: emailSent 
+      emailSent: emailSent
     });
 
     res.json({
@@ -622,11 +602,11 @@ router.post('/create-user', [
 
     await user.save();
 
-    logger.info('User created by admin', { 
-      userId: user._id, 
-      email: user.email, 
+    logger.info('User created by admin', {
+      userId: user._id,
+      email: user.email,
       role: user.role,
-      createdBy: req.user.userId 
+      createdBy: req.user.userId
     });
 
     res.status(201).json({
@@ -670,7 +650,7 @@ router.get('/users', authenticateToken, async (req, res) => {
     }
 
     const { role, department, page = 1, limit = 50 } = req.query;
-    
+
     // Build filter
     let filter = {};
     if (role && ['admin', 'faculty', 'student'].includes(role)) {
@@ -741,9 +721,9 @@ router.delete('/users/:id', authenticateToken, async (req, res) => {
 
     await User.findByIdAndDelete(req.params.id);
 
-    logger.info('User deleted by admin', { 
+    logger.info('User deleted by admin', {
       deletedUserId: req.params.id,
-      deletedBy: req.user.userId 
+      deletedBy: req.user.userId
     });
 
     res.json({

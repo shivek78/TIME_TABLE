@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
-const Student = require('./models/Student');
+const Student = require('../server/models/Student');
 
 async function testStudentCreation() {
   try {
@@ -31,24 +31,24 @@ async function testStudentCreation() {
     };
 
     console.log('\n🧪 Testing student creation...');
-    
+
     // Try to create a student
     const student = new Student(testStudent);
     await student.save();
-    
+
     console.log('✅ Student created successfully!');
     console.log(`Student ID: ${student.studentId}`);
     console.log(`Student Name: ${student.personalInfo.firstName} ${student.personalInfo.lastName}`);
-    
+
     // Clean up - delete the test student
     await Student.deleteOne({ studentId: testStudent.studentId });
     console.log('🧹 Test student cleaned up');
-    
+
     console.log('\n🎉 The duplicate key error has been fixed!');
-    
+
   } catch (error) {
     console.error('❌ Error testing student creation:', error.message);
-    
+
     if (error.code === 11000) {
       console.error('💡 This is still a duplicate key error. The fix may not have worked completely.');
       console.error('🔧 You may need to manually run the MongoDB commands or check for other duplicate data.');

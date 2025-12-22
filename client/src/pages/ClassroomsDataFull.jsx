@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
 import AdminSidebar from '../components/AdminSidebar';
 import { getClassrooms, createClassroom, updateClassroom, deleteClassroom } from '../services/api';
-import { 
+import {
   Building2,
   ArrowLeft,
   ArrowRight,
@@ -102,6 +102,35 @@ const ClassroomsData = () => {
     'Stage': Building2,
     'Microphone System': Volume2
   };
+const handleExportCSV = async () => {
+  try {
+    const response = await fetch('/api/rooms/export', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Export failed');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'classrooms.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Export CSV error:', error);
+    alert('Failed to export classrooms CSV');
+  }
+};
 
   const handleBack = () => {
     navigate('/teachers-data');
@@ -114,7 +143,7 @@ const ClassroomsData = () => {
   const handleAddRoom = async () => {
     try {
       setLoading(true);
-      
+
       // Client-side validation
       if (!roomForm.id || !roomForm.name || !roomForm.building || !roomForm.floor || !roomForm.type || !roomForm.capacity) {
         alert('Please fill in all required fields: ID, Name, Building, Floor, Type, and Capacity');
@@ -129,12 +158,12 @@ const ClassroomsData = () => {
     } catch (err) {
       console.error('Error adding classroom:', err);
       console.error('Failed data:', JSON.stringify(roomForm, null, 2));
-      
+
       // Show detailed error message from server if available
-      const errorMessage = err.response?.data?.errors 
+      const errorMessage = err.response?.data?.errors
         ? err.response.data.errors.map(e => e.msg).join(', ')
         : err.response?.data?.message || 'Failed to add classroom. Please try again.';
-      
+
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -165,7 +194,7 @@ const ClassroomsData = () => {
 
   const handleDeleteRoom = async (roomId) => {
     if (!confirm('Are you sure you want to delete this classroom?')) return;
-    
+
     try {
       setLoading(true);
       await deleteClassroom(roomId);
@@ -446,7 +475,7 @@ const ClassroomsData = () => {
             <div className="flex items-center space-x-4">
               <ThemeToggle />
               <span className="text-sm text-gray-500 dark:text-gray-400">Welcome, {user?.name}</span>
-              <button 
+              <button
                 onClick={() => { logout(); navigate('/login'); }}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
@@ -478,7 +507,7 @@ const ClassroomsData = () => {
                 <Upload className="w-4 h-4" />
                 <span>Import CSV</span>
               </button>
-              <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              <button   onClick={handleExportCSV}className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
                 <Download className="w-4 h-4" />
                 <span>Export</span>
               </button>
@@ -547,7 +576,7 @@ const ClassroomsData = () => {
               </button>
             </div>
           </div>
-          
+
           {/* Loading State */}
           {loading && classrooms.length === 0 && (
             <div className="p-12 text-center">
@@ -646,7 +675,7 @@ const ClassroomsData = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs rounded ${
-                        room.status === 'Active' 
+                        room.status === 'Active'
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                           : room.status === 'Maintenance'
                           ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
@@ -681,15 +710,15 @@ const ClassroomsData = () => {
 
         {/* Navigation */}
         <div className="mt-8 flex justify-between">
-          <button 
+          <button
             onClick={handleBack}
             className="flex items-center px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back: Teachers Data
           </button>
-          
-          <button 
+
+          <button
             onClick={handleNext}
             className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
           >

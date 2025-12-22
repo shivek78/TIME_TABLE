@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  Shield, 
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Shield,
   Calendar,
   ArrowRight,
   Brain,
@@ -24,11 +24,11 @@ import {
 const Auth = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { login, register } = useAuth();
-  
+  const { login } = useAuth();
+
   // Determine initial mode based on URL
   const [isSignUp, setIsSignUp] = useState(location.pathname === '/register');
-  
+
   // Form states
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [registerData, setRegisterData] = useState({
@@ -37,9 +37,10 @@ const Auth = () => {
     password: '',
     confirmPassword: '',
     department: '',
+    adminCode: '',
     role: 'admin'
   });
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,69 +110,79 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
+//register handeler
+ const handleRegister = async (e) => {
+  e.preventDefault();
+  setError('');
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setError('');
+  if (!validateRegister()) return;
 
-    if (!validateRegister()) {
-      return;
-    }
+  if (!registerData.adminCode.trim()) {
+    setError('Admin signup code is required');
+    return;
+  }
 
-    setIsLoading(true);
+  setIsLoading(true);
 
-    try {
-      const result = await register({
+  try {
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
         name: registerData.name,
         email: registerData.email,
         password: registerData.password,
-        role: registerData.role,
+        adminCode: registerData.adminCode,
         department: registerData.department || undefined
-      });
+      })
+    });
 
-      if (result.success) {
-        if (result.user.role === 'admin') {
-          navigate('/admin-dashboard');
-        } else if (result.user.role === 'faculty') {
-          navigate('/teacher-dashboard');
-        } else {
-          navigate('/student-dashboard');
-        }
-      } else {
-        setError(result.message || 'Registration failed. Please try again.');
-      }
-    } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
-      console.error('Registration error:', error);
-    } finally {
-      setIsLoading(false);
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      setError(data.message || 'Admin registration failed');
+      return;
     }
-  };
+
+    // ✅ Save token
+    localStorage.setItem('authToken', data.token);
+
+    // ✅ Redirect to forced password change
+    navigate('/first-time-password-change');
+
+  } catch (error) {
+    console.error('Admin registration error:', error);
+    setError('Server error. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="h-screen bg-gray-900 flex items-start justify-center pt-6 px-4 pb-8 overflow-hidden bg-landing">
       <div className="w-full max-w-3xl">
-        
+
         {/* Toggle Buttons */}
         <div className="flex gap-4 mb-6 p-2 sticky top-4 z-30">
           <div className="w-full bg-gray-800/40 backdrop-blur-sm rounded-full p-1 ring-1 ring-white/5 shadow-lg flex">
             <button
               onClick={() => toggleMode(false)}
-              className={`flex-1 py-3 px-6 rounded-full font-semibold transition-all duration-300 text-sm text-center ${
-                !isSignUp
+              className={`flex-1 py-3 px-6 rounded-full font-semibold transition-all duration-300 text-sm text-center ${!isSignUp
                   ? 'bg-gradient-to-r from-blue-500 to-blue-400 text-white shadow-[0_15px_40px_rgba(59,130,246,0.16)] -translate-y-1 scale-105 text-glow'
                   : 'text-gray-300 hover:text-white hover:bg-gray-700/20'
-              }`}
+                }`}
             >
               Sign In
             </button>
             <button
               onClick={() => toggleMode(true)}
-              className={`flex-1 py-3 px-6 rounded-full font-semibold transition-all duration-300 text-sm text-center ${
-                isSignUp
+              className={`flex-1 py-3 px-6 rounded-full font-semibold transition-all duration-300 text-sm text-center ${isSignUp
                   ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-[0_15px_40px_rgba(147,51,234,0.14)] -translate-y-1 scale-105 text-glow'
                   : 'text-gray-300 hover:text-white hover:bg-gray-700/20'
-              }`}
+                }`}
             >
               Sign Up
             </button>
@@ -180,11 +191,11 @@ const Auth = () => {
 
         {/* Card Container */}
         <div className="relative mt-2">
-          <div 
+          <div
             className={`card-container ${isSignUp ? 'flipped' : ''}`}
             style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
           >
-            
+
             {/* Sign In Card */}
             <div className="card-face card-front">
               <div className="bg-gray-800 rounded-3xl shadow-2xl overflow-hidden flex ring-1 ring-white/10">
@@ -319,7 +330,7 @@ const Auth = () => {
                   </form>
 
                   <div className="mt-4 text-center">
-                    <button 
+                    <button
                       onClick={() => navigate('/')}
                       className="text-gray-500 hover:text-gray-400 text-sm transition-colors flex items-center space-x-1 mx-auto"
                     >
@@ -410,6 +421,17 @@ const Auth = () => {
                         required
                       />
                     </div>
+                    <div className="relative">
+                      <Shield className="absolute left-4 top-4 w-5 h-5 text-gray-500" />
+                      <input
+                        type="password"
+                        placeholder="Admin Signup Code"
+                        value={registerData.adminCode}
+                        onChange={handleInputChange('register', 'adminCode')}
+                        className="w-full pl-12 pr-4 py-3 bg-gray-700/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all duration-300"
+                        required
+                      />
+                    </div>
 
                     <div className="relative">
                       <Building className="absolute left-4 top-4 w-5 h-5 text-gray-500" />
@@ -484,7 +506,7 @@ const Auth = () => {
                   </form>
 
                   <div className="mt-3 text-center">
-                    <button 
+                    <button
                       onClick={() => navigate('/')}
                       className="text-gray-500 hover:text-gray-400 text-sm transition-colors flex items-center space-x-1 mx-auto"
                     >

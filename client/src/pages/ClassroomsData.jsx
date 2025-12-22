@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
-import { 
-  Calendar, 
-  Building2, 
+import {
+  Calendar,
+  Building2,
   ArrowLeft,
   ArrowRight,
   Plus,
@@ -25,13 +25,13 @@ import {
   Layers,
   Home
 } from 'lucide-react';
-import { 
-  getClassrooms, 
-  createClassroom, 
-  updateClassroom, 
+import {
+  getClassrooms,
+  createClassroom,
+  updateClassroom,
   deleteClassroom,
   uploadCSV,
-  exportData 
+  exportData
 } from '../services/api';
 
 const ClassroomsData = () => {
@@ -39,7 +39,7 @@ const ClassroomsData = () => {
   const navigate = useNavigate();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
-  
+
   const [roomForm, setRoomForm] = useState({
     id: '',
     name: '',
@@ -69,8 +69,8 @@ const ClassroomsData = () => {
   const floors = ['Ground Floor', '1st Floor', '2nd Floor', '3rd Floor', '4th Floor'];
   const roomTypes = ['Lecture Hall', 'Tutorial Room', 'Computer Lab', 'Science Lab', 'Seminar Hall', 'Workshop'];
   const featuresList = [
-    'Projector', 'Sound System', 'Air Conditioning', 'WiFi', 'Whiteboard', 
-    'Smart Board', 'Computers', 'Lab Equipment', 'Safety Equipment', 
+    'Projector', 'Sound System', 'Air Conditioning', 'WiFi', 'Whiteboard',
+    'Smart Board', 'Computers', 'Lab Equipment', 'Safety Equipment',
     'Ventilation', 'Storage', 'Stage', 'Microphone System'
   ];
 
@@ -144,7 +144,7 @@ const ClassroomsData = () => {
   const handleSaveRoom = async () => {
     try {
       console.log('Saving classroom data:', JSON.stringify(roomForm, null, 2));
-      
+
       if (editingRoom) {
         await updateClassroom(editingRoom, roomForm);
       } else {
@@ -175,6 +175,37 @@ const ClassroomsData = () => {
       });
     }
   };
+
+  const handleExportCSV = async () => {
+  try {
+    const response = await fetch('/api/rooms/export', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('authToken')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Export failed');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'classrooms.csv';
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Export CSV error:', error);
+    alert('Failed to export classrooms CSV');
+  }
+};
 
   const handleAvailabilityChange = (day, field, value) => {
     setRoomForm({
@@ -419,7 +450,7 @@ const ClassroomsData = () => {
             <div>
               <h3 className="font-medium text-red-900 dark:text-red-100">Error Loading Classrooms</h3>
               <p className="text-red-700 dark:text-red-300">{error}</p>
-              <button 
+              <button
                 onClick={loadClassrooms}
                 className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
               >
@@ -493,7 +524,7 @@ const ClassroomsData = () => {
                 <Download className="w-4 h-4" />
                 <span>Export</span>
               </button>
-              <button 
+              <button
                 onClick={handleAddRoom}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
@@ -525,7 +556,7 @@ const ClassroomsData = () => {
                       <Building2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Classrooms Found</h3>
                       <p className="text-gray-500 dark:text-gray-400 mb-4">Get started by adding your first classroom.</p>
-                      <button 
+                      <button
                         onClick={handleAddRoom}
                         className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                       >
@@ -577,7 +608,7 @@ const ClassroomsData = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        room.priority === 'high' 
+                        room.priority === 'high'
                           ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           : room.priority === 'medium'
                           ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
@@ -599,13 +630,13 @@ const ClassroomsData = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
-                        <button 
+                        <button
                           onClick={() => handleEditRoom(room)}
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteRoom(room.id)}
                           className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                         >
@@ -621,88 +652,6 @@ const ClassroomsData = () => {
           </table>
         </div>
       </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Calendar className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Classrooms & Labs Management</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <ThemeToggle />
-              <span className="text-sm text-gray-500 dark:text-gray-400">Welcome, {user?.name}</span>
-              <button 
-                onClick={() => { logout(); navigate('/login'); }}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Classrooms & Labs</h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Manage room details, capacity, and availability for timetable generation
-              </p>
-            </div>
-            <button 
-              onClick={handleBack}
-              className="flex items-center px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Teachers Data
-            </button>
-          </div>
-        </div>
-
-        <div className="mb-6 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <div className="flex items-start space-x-3">
-            <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">Room Configuration</h4>
-              <p className="text-blue-700 dark:text-blue-300 text-sm">
-                Configure all classrooms, labs, and lecture halls with their capacity, features, and availability. 
-                Ensure room information is accurate for optimal timetable scheduling.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {renderRoomsList()}
-
-        <div className="mt-8 flex justify-between">
-          <button 
-            onClick={handleBack}
-            className="flex items-center px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </button>
-          <button 
-            onClick={() => navigate('/programs-data')}
-            className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-          >
-            Next: Programs & Courses
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </button>
-        </div>
-      </div>
-
-      {/* Add/Edit Form Modal */}
-      {showAddForm && renderRoomForm()}
     </div>
   );
 };

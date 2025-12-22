@@ -4,17 +4,17 @@
  */
 
 const mongoose = require('mongoose');
-const Teacher = require('./models/Teacher');
-const Classroom = require('./models/Classroom');
-const Course = require('./models/Course');
-const GreedyScheduler = require('./algorithms/GreedyScheduler');
-const CSPSolver = require('./algorithms/CSPSolver');
-const GeneticAlgorithm = require('./algorithms/GeneticAlgorithm');
-const BacktrackingSearch = require('./algorithms/BacktrackingSearch');
-const SimulatedAnnealing = require('./algorithms/SimulatedAnnealing');
-const OptimizationEngine = require('./algorithms/OptimizationEngine');
-const config = require('./config/config');
-const logger = require('./utils/logger');
+const Teacher = require('../server/models/Teacher');
+const Classroom = require('../server/models/Classroom');
+const Course = require('../server/models/Course');
+const GreedyScheduler = require('../server/algorithms/GreedyScheduler');
+const CSPSolver = require('../server/algorithms/CSPSolver');
+const GeneticAlgorithm = require('../server/algorithms/GeneticAlgorithm');
+const BacktrackingSearch = require('../server/algorithms/BacktrackingSearch');
+const SimulatedAnnealing = require('../server/algorithms/SimulatedAnnealing');
+const OptimizationEngine = require('../server/algorithms/OptimizationEngine');
+const config = require('../server/config/config');
+const logger = require('../server/utils/logger');
 
 // Test data
 const sampleTeachers = [
@@ -303,7 +303,7 @@ async function testAlgorithm(algorithmName, AlgorithmClass, settings = {}) {
   console.log('='.repeat(80));
 
   const startTime = Date.now();
-  
+
   try {
     const algorithm = new AlgorithmClass(
       sampleTeachers,
@@ -323,12 +323,12 @@ async function testAlgorithm(algorithmName, AlgorithmClass, settings = {}) {
     console.log(`\n${algorithmName} Results:`);
     console.log(`  Duration: ${(duration / 1000).toFixed(2)}s`);
     console.log(`  Success: ${result.success}`);
-    
+
     if (result.success) {
       console.log(`  ✅ Solution Found!`);
       console.log(`  Scheduled Sessions: ${result.solution?.length || 0}`);
       console.log(`  Conflicts: ${result.conflicts?.length || 0}`);
-      
+
       if (result.metrics) {
         console.log(`  Metrics:`, result.metrics);
       }
@@ -438,11 +438,11 @@ function validateSolution(solution, algorithmName) {
           );
           if (overlap) {
             // Allow lab simultaneous sessions
-            const isLabException = 
+            const isLabException =
               slots[i].sessionType === 'Practical' &&
               slots[j].sessionType === 'Practical' &&
               slots[i].teacherId !== slots[j].teacherId;
-            
+
             if (!isLabException) {
               validation.classroomConflicts++;
               console.log(`    ⚠️  Classroom conflict: ${slots[i].classroomName} on ${slots[i].day}`);
@@ -528,7 +528,7 @@ async function runTests() {
   console.log(`\n${'='.repeat(80)}`);
   console.log(`Testing: Hybrid CSP-GA (via OptimizationEngine)`);
   console.log('='.repeat(80));
-  
+
   const startTime = Date.now();
   try {
     const engine = new OptimizationEngine();
@@ -538,16 +538,16 @@ async function runTests() {
       sampleCourses,
       { ...testSettings, maxGenerations: 100, maxBacktrackingSteps: 3000 }
     );
-    
+
     const duration = Date.now() - startTime;
     console.log(`  Duration: ${(duration / 1000).toFixed(2)}s`);
     console.log(`  Success: ${result.success}`);
-    
+
     if (result.success) {
       console.log(`  ✅ Solution Found!`);
       console.log(`  Scheduled Sessions: ${result.solution?.length || 0}`);
     }
-    
+
     results.push({
       algorithm: 'Hybrid CSP-GA',
       success: result.success,
@@ -569,7 +569,7 @@ async function runTests() {
   console.log('║                              TEST SUMMARY                                     ║');
   console.log('╚═══════════════════════════════════════════════════════════════════════════════╝');
   console.log('\n');
-  
+
   console.table(results.map(r => ({
     Algorithm: r.algorithm,
     Status: r.success ? '✅ Success' : '❌ Failed',
@@ -580,9 +580,9 @@ async function runTests() {
 
   const successCount = results.filter(r => r.success).length;
   const totalCount = results.length;
-  
+
   console.log(`\nOverall Results: ${successCount}/${totalCount} algorithms working correctly`);
-  
+
   if (successCount === totalCount) {
     console.log('\n🎉 ALL ALGORITHMS PASSING! 🎉\n');
   } else {

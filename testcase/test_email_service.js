@@ -1,13 +1,13 @@
 /**
  * Email Service Test Script
- * 
+ *
  * This script tests the email functionality of the mailing system.
  * Run this after configuring your email settings in .env
  */
 
 const mongoose = require('mongoose');
-const emailService = require('./utils/emailService');
-const User = require('./models/User');
+const emailService = require('../server/utils/emailService');
+const User = require('../server/models/User');
 require('dotenv').config();
 
 // Test data
@@ -54,31 +54,31 @@ async function connectDB() {
 
 async function testEmailConfiguration() {
   console.log('\n🔧 Testing email configuration...');
-  
+
   const isConfigured = emailService.isConfigured();
   console.log(`Email service configured: ${isConfigured ? '✅ Yes' : '❌ No'}`);
-  
+
   if (!isConfigured) {
     console.log('❌ Email service not configured. Please check your .env file.');
     return false;
   }
-  
+
   const testResult = await emailService.testEmailConfiguration();
   console.log(`SMTP connection test: ${testResult ? '✅ Success' : '❌ Failed'}`);
-  
+
   return testResult;
 }
 
 async function testStudentCredentialsEmail() {
   console.log('\n📧 Testing student credentials email...');
-  
+
   try {
     const tempPassword = emailService.generateSecurePassword(10);
     console.log(`Generated temporary password: ${tempPassword}`);
-    
+
     const result = await emailService.sendStudentCredentials(testStudentData, tempPassword);
     console.log(`Student credentials email: ${result ? '✅ Sent successfully' : '❌ Failed to send'}`);
-    
+
     return result;
   } catch (error) {
     console.error('❌ Error sending student credentials email:', error.message);
@@ -88,14 +88,14 @@ async function testStudentCredentialsEmail() {
 
 async function testTeacherCredentialsEmail() {
   console.log('\n📧 Testing teacher credentials email...');
-  
+
   try {
     const tempPassword = emailService.generateSecurePassword(10);
     console.log(`Generated temporary password: ${tempPassword}`);
-    
+
     const result = await emailService.sendTeacherCredentials(testTeacherData, tempPassword);
     console.log(`Teacher credentials email: ${result ? '✅ Sent successfully' : '❌ Failed to send'}`);
-    
+
     return result;
   } catch (error) {
     console.error('❌ Error sending teacher credentials email:', error.message);
@@ -105,11 +105,11 @@ async function testTeacherCredentialsEmail() {
 
 async function testPasswordChangeConfirmation() {
   console.log('\n📧 Testing password change confirmation email...');
-  
+
   try {
     const result = await emailService.sendPasswordChangeConfirmation(testUserData);
     console.log(`Password change confirmation: ${result ? '✅ Sent successfully' : '❌ Failed to send'}`);
-    
+
     return result;
   } catch (error) {
     console.error('❌ Error sending password change confirmation:', error.message);
@@ -119,7 +119,7 @@ async function testPasswordChangeConfirmation() {
 
 async function testBulkCreationSummary() {
   console.log('\n📧 Testing bulk creation summary email...');
-  
+
   try {
     const testAccounts = [
       {
@@ -133,11 +133,11 @@ async function testBulkCreationSummary() {
         tempPassword: emailService.generateSecurePassword(8)
       }
     ];
-    
+
     const adminEmail = 'admin@example.com'; // Change this to your email for testing
     const result = await emailService.sendBulkCreationSummary(testAccounts, adminEmail);
     console.log(`Bulk creation summary: ${result ? '✅ Sent successfully' : '❌ Failed to send'}`);
-    
+
     return result;
   } catch (error) {
     console.error('❌ Error sending bulk creation summary:', error.message);
@@ -147,22 +147,22 @@ async function testBulkCreationSummary() {
 
 async function testPasswordGeneration() {
   console.log('\n🔐 Testing password generation...');
-  
+
   try {
     const passwords = [];
     for (let i = 0; i < 5; i++) {
       passwords.push(emailService.generateSecurePassword(10));
     }
-    
+
     console.log('Generated passwords:');
     passwords.forEach((pwd, index) => {
       console.log(`  ${index + 1}. ${pwd}`);
     });
-    
+
     // Check uniqueness
     const uniquePasswords = new Set(passwords);
     console.log(`Uniqueness check: ${uniquePasswords.size === passwords.length ? '✅ All unique' : '❌ Duplicates found'}`);
-    
+
     return true;
   } catch (error) {
     console.error('❌ Error testing password generation:', error.message);
@@ -174,7 +174,7 @@ async function runAllTests() {
   console.log('🚀 Starting Email Service Tests\n');
   console.log('Make sure you have configured your .env file with email settings');
   console.log('Update the test email addresses in this script to your actual email addresses\n');
-  
+
   const results = {
     configuration: false,
     passwordGeneration: false,
@@ -183,21 +183,21 @@ async function runAllTests() {
     passwordChangeEmail: false,
     bulkSummaryEmail: false
   };
-  
+
   // Connect to database
   await connectDB();
-  
+
   // Run tests
   results.configuration = await testEmailConfiguration();
   results.passwordGeneration = await testPasswordGeneration();
-  
+
   if (results.configuration) {
     results.studentEmail = await testStudentCredentialsEmail();
     results.teacherEmail = await testTeacherCredentialsEmail();
     results.passwordChangeEmail = await testPasswordChangeConfirmation();
     results.bulkSummaryEmail = await testBulkCreationSummary();
   }
-  
+
   // Summary
   console.log('\n📊 Test Results Summary:');
   console.log('========================');
@@ -206,18 +206,18 @@ async function runAllTests() {
     const testName = test.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
     console.log(`${testName}: ${status}`);
   });
-  
+
   const totalTests = Object.keys(results).length;
   const passedTests = Object.values(results).filter(Boolean).length;
-  
+
   console.log(`\nOverall: ${passedTests}/${totalTests} tests passed`);
-  
+
   if (passedTests === totalTests) {
     console.log('🎉 All tests passed! Your mailing system is working correctly.');
   } else {
     console.log('⚠️  Some tests failed. Please check your configuration and try again.');
   }
-  
+
   // Disconnect from database
   await mongoose.disconnect();
   console.log('\n✅ Disconnected from MongoDB');

@@ -43,7 +43,7 @@ const FirstTimePasswordChange = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear errors when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -94,7 +94,7 @@ const FirstTimePasswordChange = () => {
 
         // Show success message
         alert('Password changed successfully! You can now access all features.');
-        
+
         // Redirect to dashboard
         navigate('/dashboard');
       } else {
@@ -115,9 +115,9 @@ const FirstTimePasswordChange = () => {
       /(?=.*\d)/.test(password),
       /(?=.*[@$!%*?&])/.test(password)
     ];
-    
+
     const strength = validations.filter(Boolean).length;
-    
+
     if (strength <= 2) return { level: 'weak', color: 'text-red-500', width: '33%' };
     if (strength <= 3) return { level: 'medium', color: 'text-yellow-500', width: '66%' };
     return { level: 'strong', color: 'text-green-500', width: '100%' };
@@ -133,20 +133,20 @@ const FirstTimePasswordChange = () => {
             Set Your Password
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {user?.isFirstLogin 
+            {user?.isFirstLogin
               ? 'Welcome! Please set a secure password to continue.'
               : 'For security reasons, you must change your password.'
             }
           </p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {errors.general && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
               {errors.general}
             </div>
           )}
-          
+
           <div className="space-y-4">
             <div>
               <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
@@ -171,7 +171,7 @@ const FirstTimePasswordChange = () => {
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
-              
+
               {formData.newPassword && (
                 <div className="mt-2">
                   <div className="flex justify-between items-center text-sm">
@@ -191,7 +191,7 @@ const FirstTimePasswordChange = () => {
                   </div>
                 </div>
               )}
-              
+
               {errors.newPassword && (
                 <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
               )}

@@ -5,10 +5,10 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Teacher = require('./models/Teacher');
-const Classroom = require('./models/Classroom');
-const Course = require('./models/Course');
-const OptimizationEngine = require('./algorithms/OptimizationEngine');
+const Teacher = require('../server/models/Teacher');
+const Classroom = require('../server/models/Classroom');
+const Course = require('../server/models/Course');
+const OptimizationEngine = require('../server/algorithms/OptimizationEngine');
 
 async function testGeneration() {
   try {
@@ -18,13 +18,13 @@ async function testGeneration() {
 
     console.log('📊 Fetching data...');
     const startFetch = Date.now();
-    
+
     const [teachers, classrooms, courses] = await Promise.all([
       Teacher.find({ status: 'active' }),
       Classroom.find({ status: 'available' }),
       Course.find({ isActive: true })
     ]);
-    
+
     const fetchTime = Date.now() - startFetch;
     console.log(`✅ Data fetched in ${fetchTime}ms`);
     console.log(`   Teachers: ${teachers.length}`);
@@ -33,10 +33,10 @@ async function testGeneration() {
 
     console.log('🔍 Running validation...');
     const startValidation = Date.now();
-    
+
     const engine = new OptimizationEngine();
     const validation = engine.validateInputData(teachers, classrooms, courses);
-    
+
     const validationTime = Date.now() - startValidation;
     console.log(`✅ Validation completed in ${validationTime}ms`);
     console.log(`   Valid: ${validation.valid}`);
@@ -89,13 +89,13 @@ async function testGeneration() {
     console.log(`Success: ${result.success}`);
     console.log(`Optimization Time: ${optimizationTime}ms (${(optimizationTime/1000).toFixed(2)}s)`);
     console.log(`Total Time: ${totalTime}ms (${(totalTime/1000).toFixed(2)}s)`);
-    
+
     if (result.success) {
       console.log(`\n✅ Timetable generated successfully!`);
       console.log(`   Schedule entries: ${result.solution.length}`);
       console.log(`   Conflicts: ${result.conflicts ? result.conflicts.length : 0}`);
       console.log(`   Quality score: ${result.metrics?.qualityMetrics?.overallScore || 'N/A'}`);
-      
+
       if (result.metrics) {
         console.log('\n📈 Metrics:');
         console.log(`   Duration: ${result.metrics.duration || result.metrics.totalDuration}ms`);

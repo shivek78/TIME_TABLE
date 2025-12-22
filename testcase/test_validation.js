@@ -5,10 +5,10 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Teacher = require('./models/Teacher');
-const Classroom = require('./models/Classroom');
-const Course = require('./models/Course');
-const OptimizationEngine = require('./algorithms/OptimizationEngine');
+const Teacher = require('../server/models/Teacher');
+const Classroom = require('../server/models/Classroom');
+const Course = require('../server/models/Course');
+const OptimizationEngine = require('../server/algorithms/OptimizationEngine');
 
 async function testValidation() {
   try {
